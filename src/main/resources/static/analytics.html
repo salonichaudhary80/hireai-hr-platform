@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Analytics</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <h2>HireAI</h2>
+    <div>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="analytics.html">Analytics</a>
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Hiring Analytics</h1>
+
+    <div class="cards">
+        <div class="card">
+            <h3>Total Jobs</h3>
+            <p id="totalJobs">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Total Candidates</h3>
+            <p id="totalCandidates">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Shortlisted</h3>
+            <p id="shortlisted">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Under Review</h3>
+            <p id="underReview">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Rejected</h3>
+            <p id="rejected">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Video Submitted</h3>
+            <p id="videoSubmitted">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Onboarded</h3>
+            <p id="onboarded">0</p>
+        </div>
+    </div>
+
+    <p id="analyticsMessage" class="message"></p>
+</div>
+
+<script>
+    async function loadAnalytics() {
+        try {
+            const response = await fetch("/api/dashboard/stats");
+
+            if (!response.ok) {
+                throw new Error("Failed to load analytics");
+            }
+
+            const stats = await response.json();
+
+            document.getElementById("totalJobs").innerText = stats.totalJobs || 0;
+            document.getElementById("totalCandidates").innerText = stats.totalCandidates || 0;
+            document.getElementById("shortlisted").innerText = stats.shortlisted || 0;
+            document.getElementById("underReview").innerText = stats.underReview || 0;
+            document.getElementById("rejected").innerText = stats.rejected || 0;
+            document.getElementById("videoSubmitted").innerText = stats.videoSubmitted || 0;
+            document.getElementById("onboarded").innerText = stats.onboarded || 0;
+
+        } catch (error) {
+            console.log("Analytics error:", error);
+            document.getElementById("analyticsMessage").innerText = "Failed to load analytics.";
+            document.getElementById("analyticsMessage").style.color = "red";
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    loadAnalytics();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Candidates</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <h2>HireAI</h2>
+    <div>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="analytics.html">Analytics</a>
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Candidate List</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Score</th>
+                <th>Matched Skills</th>
+                <th>Status</th>
+                <th>Update Status</th>
+            </tr>
+        </thead>
+        <tbody id="candidateTableBody">
+        </tbody>
+    </table>
+
+    <p id="candidateMessage" class="message"></p>
+</div>
+
+<script>
+    async function loadCandidates() {
+        try {
+            const response = await fetch("/api/candidates");
+
+            if (!response.ok) {
+                throw new Error("Failed to load candidates");
+            }
+
+            const candidates = await response.json();
+            const tableBody = document.getElementById("candidateTableBody");
+
+            tableBody.innerHTML = "";
+
+            if (candidates.length === 0) {
+                document.getElementById("candidateMessage").innerText = "No candidates found.";
+                document.getElementById("candidateMessage").style.color = "red";
+                return;
+            }
+
+            candidates.forEach(candidate => {
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${candidate.id}</td>
+                    <td>${candidate.name}</td>
+                    <td>${candidate.email}</td>
+                    <td>${candidate.phone}</td>
+                    <td>${candidate.resumeScore ? candidate.resumeScore.toFixed(2) + "%" : "0%"}</td>
+                    <td>${candidate.matchedSkills || "-"}</td>
+                    <td>${candidate.status}</td>
+                    <td>
+                        <select id="status-${candidate.id}">
+                            <option value="SHORTLISTED">SHORTLISTED</option>
+                            <option value="UNDER_REVIEW">UNDER_REVIEW</option>
+                            <option value="REJECTED">REJECTED</option>
+                            <option value="ONBOARDED">ONBOARDED</option>
+                        </select>
+                        <button onclick="updateStatus(${candidate.id})">Update</button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+
+        } catch (error) {
+            console.log("Candidate loading error:", error);
+            document.getElementById("candidateMessage").innerText = "Failed to load candidates.";
+            document.getElementById("candidateMessage").style.color = "red";
+        }
+    }
+
+    async function updateStatus(candidateId) {
+        const status = document.getElementById("status-" + candidateId).value;
+
+        try {
+            const response = await fetch(`/api/candidates/${candidateId}/status?status=${status}`, {
+                method: "PUT"
+            });
+
+            if (!response.ok) {
+                throw new Error("Status update failed");
+            }
+
+            alert("Candidate status updated successfully.");
+            loadCandidates();
+
+        } catch (error) {
+            console.log("Status update error:", error);
+            alert("Failed to update candidate status.");
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    loadCandidates();
+</script>
+
+</body>
+</html>

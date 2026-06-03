@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Create Job</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <h2>HireAI</h2>
+    <div>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="analytics.html">Analytics</a>
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Create Job</h1>
+
+    <div class="form-card">
+        <form id="createJobForm">
+            <label>Job Title</label>
+            <input type="text" id="jobTitle" placeholder="Java Developer Intern" required>
+
+            <label>Description</label>
+            <textarea id="jobDescription" placeholder="Enter job description" required></textarea>
+
+            <label>Required Skills</label>
+            <input type="text" id="requiredSkills" placeholder="Java, Spring Boot, MySQL, REST API" required>
+
+            <label>Experience</label>
+            <input type="text" id="experience" placeholder="0-1 year" required>
+
+            <button type="submit">Create Job</button>
+        </form>
+
+        <p id="jobMessage" class="message"></p>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById("createJobForm");
+
+    form.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const jobData = {
+            title: document.getElementById("jobTitle").value,
+            description: document.getElementById("jobDescription").value,
+            requiredSkills: document.getElementById("requiredSkills").value,
+            experience: document.getElementById("experience").value,
+            createdBy: "HR User"
+        };
+
+        try {
+            const response = await fetch("/api/jobs", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(jobData)
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed with status: " + response.status);
+            }
+
+            const data = await response.json();
+
+            document.getElementById("jobMessage").innerText =
+                "Job created successfully with ID: " + data.id;
+
+            document.getElementById("jobMessage").style.color = "green";
+
+            form.reset();
+
+        } catch (error) {
+            console.log("Create job error:", error);
+
+            document.getElementById("jobMessage").innerText =
+                "Failed to create job. Check console or backend logs.";
+
+            document.getElementById("jobMessage").style.color = "red";
+        }
+    });
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+</script>
+
+</body>
+</html>

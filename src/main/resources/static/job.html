@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Create Job</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <h2>HireAI</h2>
+    <div>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="analytics.html">Analytics</a>
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Create Job</h1>
+
+    <div class="form-card">
+        <form id="createJobForm">
+            <label>Job Title</label>
+            <input type="text" id="jobTitle" placeholder="Java Developer Intern" required>
+
+            <label>Description</label>
+            <textarea id="jobDescription" placeholder="Enter job description" required></textarea>
+
+            <label>Required Skills</label>
+            <input type="text" id="requiredSkills" placeholder="Java, Spring Boot, MySQL, REST API" required>
+
+            <label>Experience</label>
+            <input type="text" id="experience" placeholder="0-1 year" required>
+
+            <button type="submit">Create Job</button>
+        </form>
+
+        <p id="jobMessage" class="message"></p>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

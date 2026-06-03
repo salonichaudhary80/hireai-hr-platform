@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <h2>HireAI</h2>
+    <div>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="analytics.html">Analytics</a>
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>HR Dashboard</h1>
+    <p id="welcomeText"></p>
+
+    <div class="cards">
+        <div class="card">
+            <h3>Total Jobs</h3>
+            <p id="totalJobs">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Total Candidates</h3>
+            <p id="totalCandidates">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Shortlisted</h3>
+            <p id="shortlisted">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Rejected</h3>
+            <p id="rejected">0</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Project Modules</h2>
+
+        <div class="module-grid">
+            <div class="module-card">
+                <h3>Job Creation</h3>
+                <p>Create job openings with required skills.</p>
+            </div>
+
+            <div class="module-card">
+                <h3>Resume Screening</h3>
+                <p>Upload resume and generate AI match score.</p>
+            </div>
+
+            <div class="module-card">
+                <h3>Candidate Tracking</h3>
+                <p>Shortlist, reject, or onboard candidates.</p>
+            </div>
+
+            <div class="module-card">
+                <h3>Analytics</h3>
+                <p>View hiring statistics and candidate status.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

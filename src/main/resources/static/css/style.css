@@ -1,0 +1,177 @@
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    background: #f4f6f8;
+    color: #222;
+}
+
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-card {
+    background: white;
+    width: 420px;
+    padding: 35px;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+}
+
+.auth-card h1 {
+    text-align: center;
+    margin-bottom: 5px;
+    color: #1d3557;
+}
+
+.subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.auth-card h2 {
+    margin-bottom: 20px;
+}
+
+label {
+    font-weight: bold;
+    margin-top: 12px;
+    display: block;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    margin-top: 6px;
+    margin-bottom: 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+button {
+    background: #1d3557;
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #0f2238;
+}
+
+.bottom-text {
+    text-align: center;
+    margin-top: 20px;
+}
+
+a {
+    color: #1d3557;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.message {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+.navbar {
+    background: #1d3557;
+    color: white;
+    padding: 16px 35px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar a {
+    color: white;
+    margin-right: 18px;
+}
+
+.navbar button {
+    background: #e63946;
+}
+
+.container {
+    padding: 35px;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-top: 25px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.card h3 {
+    margin: 0;
+    color: #444;
+}
+
+.card p {
+    font-size: 32px;
+    font-weight: bold;
+    color: #1d3557;
+}
+
+.section {
+    margin-top: 35px;
+}
+
+.module-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+}
+
+.module-card {
+    background: white;
+    padding: 22px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    margin-top: 20px;
+}
+
+.table th, .table td {
+    padding: 14px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.table th {
+    background: #1d3557;
+    color: white;
+}
+
+.form-card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 700px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}

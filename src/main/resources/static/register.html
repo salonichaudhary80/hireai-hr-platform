@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Register</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>HireAI</h1>
+        <p class="subtitle">Create your account</p>
+
+        <h2>Register</h2>
+
+        <form id="registerForm">
+            <label>Name</label>
+            <input type="text" id="registerName" placeholder="Enter name" required>
+
+            <label>Email</label>
+            <input type="email" id="registerEmail" placeholder="Enter email" required>
+
+            <label>Password</label>
+            <input type="password" id="registerPassword" placeholder="Enter password" required>
+
+            <label>Role</label>
+            <select id="registerRole">
+                <option value="HR">HR</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="CANDIDATE">CANDIDATE</option>
+            </select>
+
+            <button type="submit">Register</button>
+        </form>
+
+        <p class="bottom-text">
+            Already registered? <a href="index.html">Login here</a>
+        </p>
+
+        <p id="registerMessage" class="message"></p>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

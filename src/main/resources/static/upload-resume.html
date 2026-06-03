@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Upload Resume</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <h2>HireAI</h2>
+    <div>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="analytics.html">Analytics</a>
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Upload Candidate Resume</h1>
+
+    <div class="form-card">
+        <form id="resumeUploadForm">
+
+            <label>Select Job</label>
+            <select id="jobSelect" required>
+                <option value="">Select Job</option>
+            </select>
+
+            <label>Candidate Name</label>
+            <input type="text" id="candidateName" placeholder="Rahul Kumar" required>
+
+            <label>Email</label>
+            <input type="email" id="candidateEmail" placeholder="rahul@gmail.com" required>
+
+            <label>Phone</label>
+            <input type="text" id="candidatePhone" placeholder="9876543210" required>
+
+            <label>Resume PDF</label>
+            <input type="file" id="resumeFile" accept=".pdf" required>
+
+            <button type="submit">Upload Resume</button>
+        </form>
+
+        <p id="resumeMessage" class="message"></p>
+    </div>
+</div>
+
+<script>
+    async function loadJobs() {
+        try {
+            const response = await fetch("/api/jobs");
+            const jobs = await response.json();
+
+            const jobSelect = document.getElementById("jobSelect");
+
+            jobs.forEach(job => {
+                const option = document.createElement("option");
+                option.value = job.id;
+                option.textContent = job.title + " - " + job.experience;
+                jobSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            console.log("Failed to load jobs:", error);
+            document.getElementById("resumeMessage").innerText = "Failed to load jobs.";
+            document.getElementById("resumeMessage").style.color = "red";
+        }
+    }
+
+    const form = document.getElementById("resumeUploadForm");
+
+    form.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const formData = new FormData();
+
+        formData.append("jobId", document.getElementById("jobSelect").value);
+        formData.append("name", document.getElementById("candidateName").value);
+        formData.append("email", document.getElementById("candidateEmail").value);
+        formData.append("phone", document.getElementById("candidatePhone").value);
+        formData.append("resume", document.getElementById("resumeFile").files[0]);
+
+        try {
+            const response = await fetch("/api/candidates/apply", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed with status: " + response.status);
+            }
+
+            const candidate = await response.json();
+
+            document.getElementById("resumeMessage").innerText =
+                "Resume uploaded successfully. Score: " +
+                candidate.resumeScore.toFixed(2) +
+                "%, Status: " +
+                candidate.status;
+
+            document.getElementById("resumeMessage").style.color = "green";
+
+            form.reset();
+
+        } catch (error) {
+            console.log("Resume upload error:", error);
+
+            document.getElementById("resumeMessage").innerText =
+                "Failed to upload resume. Check console or backend logs.";
+
+            document.getElementById("resumeMessage").style.color = "red";
+        }
+    });
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    loadJobs();
+</script>
+
+</body>
+</html>
