@@ -8,3 +8,4 @@ uploads/
 # Environment / secrets
 .env
 application-local.propertieshireai-hr-platform.tar
+hireai-hr-platform.tar
