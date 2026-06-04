@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Offer Letter Generator</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-brand">
+        <span class="brand-logo">HireAI</span>
+        <span class="brand-subtitle">HR Recruitment Platform</span>
+    </div>
+
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+
+    <label for="menuToggle" class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+
+    <div class="nav-menu">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="bulk-upload.html">Bulk Upload</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="ranking.html">Ranking</a>
+        <a href="video-interview.html">Video Interview</a>
+        <a href="interview-scorecard.html">Scorecard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="job-analytics.html">Job Analytics</a>
+        <a href="communication.html">Communication</a>
+        <a href="offer-letter.html">Offer Letter</a>
+        <a href="analytics.html">Analytics</a>
+
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Offer Letter Generator</h1>
+    <p>Generate a basic offer letter for selected candidates.</p>
+
+    <div class="form-card">
+        <label>Select Candidate</label>
+        <select id="candidateSelect" onchange="loadCandidateDetails()" required>
+            <option value="">Select Candidate</option>
+        </select>
+
+        <label>Job Role</label>
+        <input type="text" id="jobRole" placeholder="Java Developer Intern" required>
+
+        <label>Annual CTC / Stipend</label>
+        <input type="text" id="salary" placeholder="₹3,00,000 per annum or ₹15,000/month" required>
+
+        <label>Joining Date</label>
+        <input type="date" id="joiningDate" required>
+
+        <label>Work Location</label>
+        <input type="text" id="location" placeholder="Noida / Remote / Bangalore" required>
+
+        <label>HR Name</label>
+        <input type="text" id="hrName" placeholder="HR Team" required>
+
+        <button onclick="generateOfferLetter()">Generate Offer Letter</button>
+        <button onclick="markCandidateOnboarded()">Mark as Onboarded</button>
+
+        <p id="candidateInfo" class="message"></p>
+        <p id="offerMessage" class="message"></p>
+    </div>
+
+    <div class="section">
+        <h2>Generated Offer Letter</h2>
+
+        <div class="form-card" style="max-width: 900px;">
+            <textarea id="offerLetterText" rows="18" readonly placeholder="Offer letter will appear here..."></textarea>
+
+            <button onclick="copyOfferLetter()">Copy Offer Letter</button>
+            <button onclick="downloadOfferLetter()">Download Offer Letter</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allCandidates = [];
+    let selectedCandidate = null;
+
+    function protectHRPage() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const role = user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Access denied. This page is only for HR/Admin users.");
+            window.location.href = "candidate-dashboard.html";
+        }
+    }
+
+    protectHRPage();
+
+    async function loadCandidates() {
+        try {
+            const response = await fetch("/api/candidates");
+
+            if (!response.ok) {
+                throw new Error("Failed to load candidates");
+            }
+
+            allCandidates = await response.json();
+
+            const candidateSelect = document.getElementById("candidateSelect");
+            candidateSelect.innerHTML = '<option value="">Select Candidate</option>';
+
+            allCandidates.forEach(candidate => {
+                const option = document.createElement("option");
+                option.value = candidate.id;
+                option.textContent = candidate.name + " - " + candidate.email + " - " + candidate.status;
+                candidateSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            console.log("Candidate loading error:", error);
+            document.getElementById("offerMessage").innerText = "Failed to load candidates.";
+            document.getElementById("offerMessage").style.color = "red";
+        }
+    }
+
+    function loadCandidateDetails() {
+        const candidateId = document.getElementById("candidateSelect").value;
+
+        selectedCandidate = allCandidates.find(candidate => candidate.id == candidateId);
+
+        if (!selectedCandidate) {
+            document.getElementById("candidateInfo").innerText = "";
+            return;
+        }
+
+        document.getElementById("candidateInfo").innerText =
+            "Selected Candidate: " + selectedCandidate.name +
+            " | Email: " + selectedCandidate.email +
+            " | Score: " + (selectedCandidate.resumeScore ? selectedCandidate.resumeScore.toFixed(2) : 0) + "%" +
+            " | Status: " + selectedCandidate.status;
+
+        document.getElementById("candidateInfo").style.color = "green";
+    }
+
+    function generateOfferLetter() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const role = user && user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Only HR/Admin users can generate offer letters.");
+            window.location.href = "candidate-dashboard.html";
+            return;
+        }
+
+        if (!selectedCandidate) {
+            alert("Please select a candidate first.");
+            return;
+        }
+
+        const jobRole = document.getElementById("jobRole").value;
+        const salary = document.getElementById("salary").value;
+        const joiningDate = document.getElementById("joiningDate").value;
+        const location = document.getElementById("location").value;
+        const hrName = document.getElementById("hrName").value;
+
+        if (!jobRole || !salary || !joiningDate || !location || !hrName) {
+            alert("Please fill all offer details.");
+            return;
+        }
+
+        const today = new Date().toLocaleDateString();
+
+        const letter = `Date: ${today}
+
+Subject: Offer Letter for the Position of ${jobRole}
+
+Dear ${selectedCandidate.name},
+
+Congratulations!
+
+We are pleased to offer you the position of ${jobRole} at our organization.
+
+Based on your application, resume screening, and evaluation process, your profile has been selected for this opportunity.
+
+Candidate Details:
+Name: ${selectedCandidate.name}
+Email: ${selectedCandidate.email}
+Phone: ${selectedCandidate.phone}
+Resume Match Score: ${selectedCandidate.resumeScore ? selectedCandidate.resumeScore.toFixed(2) : 0}%
+Matched Skills: ${selectedCandidate.matchedSkills || "-"}
+
+Offer Details:
+Position: ${jobRole}
+Compensation: ${salary}
+Joining Date: ${joiningDate}
+Work Location: ${location}
+
+This offer is subject to successful completion of document verification and onboarding formalities.
+
+Please confirm your acceptance of this offer by replying to this communication.
+
+We look forward to having you onboard and wish you success in your role.
+
+Best regards,
+${hrName}
+HR Team
+HireAI`;
+
+        document.getElementById("offerLetterText").value = letter;
+
+        localStorage.setItem("offer_letter_" + selectedCandidate.id, letter);
+
+        document.getElementById("offerMessage").innerText = "Offer letter generated successfully.";
+        document.getElementById("offerMessage").style.color = "green";
+    }
+
+    function copyOfferLetter() {
+        const offerText = document.getElementById("offerLetterText");
+
+        if (!offerText.value.trim()) {
+            alert("Please generate offer letter first.");
+            return;
+        }
+
+        offerText.select();
+        document.execCommand("copy");
+
+        document.getElementById("offerMessage").innerText = "Offer letter copied successfully.";
+        document.getElementById("offerMessage").style.color = "green";
+    }
+
+    function downloadOfferLetter() {
+        const offerText = document.getElementById("offerLetterText").value;
+
+        if (!offerText.trim()) {
+            alert("Please generate offer letter first.");
+            return;
+        }
+
+        if (!selectedCandidate) {
+            alert("Please select a candidate first.");
+            return;
+        }
+
+        const fileName = selectedCandidate.name.replaceAll(" ", "_") + "_Offer_Letter.txt";
+
+        const blob = new Blob([offerText], { type: "text/plain" });
+        const url = window.URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.click();
+
+        window.URL.revokeObjectURL(url);
+    }
+
+    async function markCandidateOnboarded() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const role = user && user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Only HR/Admin users can mark candidates onboarded.");
+            window.location.href = "candidate-dashboard.html";
+            return;
+        }
+
+        if (!selectedCandidate) {
+            alert("Please select a candidate first.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/candidates/${selectedCandidate.id}/status?status=ONBOARDED`, {
+                method: "PUT"
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to update status");
+            }
+
+            document.getElementById("offerMessage").innerText =
+                "Candidate marked as ONBOARDED successfully.";
+
+            document.getElementById("offerMessage").style.color = "green";
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+
+        } catch (error) {
+            console.log("Status update error:", error);
+            document.getElementById("offerMessage").innerText = "Failed to update candidate status.";
+            document.getElementById("offerMessage").style.color = "red";
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    loadCandidates();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Bulk Resume Upload</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-brand">
+        <span class="brand-logo">HireAI</span>
+        <span class="brand-subtitle">HR Recruitment Platform</span>
+    </div>
+
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+
+    <label for="menuToggle" class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+
+    <div class="nav-menu">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="bulk-upload.html">Bulk Upload</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="ranking.html">Ranking</a>
+        <a href="video-interview.html">Video Interview</a>
+        <a href="interview-scorecard.html">Scorecard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="job-analytics.html">Job Analytics</a>
+        <a href="communication.html">Communication</a>
+        <a href="offer-letter.html">Offer Letter</a>
+        <a href="analytics.html">Analytics</a>
+
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Bulk Resume Upload</h1>
+    <p>Upload multiple candidate resumes for a selected job and screen them together.</p>
+
+    <div class="form-card">
+        <form id="bulkUploadForm">
+
+            <label>Select Job</label>
+            <select id="bulkJobSelect" required>
+                <option value="">Select Job</option>
+            </select>
+
+            <label>Select Multiple Resume PDFs</label>
+            <input type="file" id="bulkResumeFiles" accept=".pdf" multiple required>
+
+            <button type="submit">Upload Resumes</button>
+        </form>
+
+        <p id="bulkUploadMessage" class="message"></p>
+    </div>
+
+    <div class="section">
+        <h2>Uploaded Candidates Result</h2>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Candidate ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Score</th>
+                    <th>Matched Skills</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="bulkResultTable">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function protectHRPage() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const role = user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Access denied. This page is only for HR/Admin users.");
+            window.location.href = "candidate-dashboard.html";
+        }
+    }
+
+    protectHRPage();
+
+    async function loadJobsForBulkUpload() {
+        try {
+            const response = await fetch("/api/jobs");
+
+            if (!response.ok) {
+                throw new Error("Failed to load jobs");
+            }
+
+            const jobs = await response.json();
+            const jobSelect = document.getElementById("bulkJobSelect");
+
+            jobSelect.innerHTML = '<option value="">Select Job</option>';
+
+            jobs.forEach(job => {
+                const option = document.createElement("option");
+                option.value = job.id;
+                option.textContent = job.title + " - " + job.experience;
+                jobSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            console.log("Failed to load jobs:", error);
+            document.getElementById("bulkUploadMessage").innerText = "Failed to load jobs.";
+            document.getElementById("bulkUploadMessage").style.color = "red";
+        }
+    }
+
+    const bulkUploadForm = document.getElementById("bulkUploadForm");
+
+    bulkUploadForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const role = user && user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Only HR/Admin users can upload resumes.");
+            window.location.href = "candidate-dashboard.html";
+            return;
+        }
+
+        const jobId = document.getElementById("bulkJobSelect").value;
+        const files = document.getElementById("bulkResumeFiles").files;
+
+        if (!jobId) {
+            alert("Please select a job.");
+            return;
+        }
+
+        if (files.length === 0) {
+            alert("Please select at least one resume PDF.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("jobId", jobId);
+
+        for (let i = 0; i < files.length; i++) {
+            formData.append("files", files[i]);
+        }
+
+        try {
+            document.getElementById("bulkUploadMessage").innerText = "Uploading resumes...";
+            document.getElementById("bulkUploadMessage").style.color = "blue";
+
+            const response = await fetch("/api/candidates/bulk-upload", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Bulk upload failed with status: " + response.status);
+            }
+
+            const candidates = await response.json();
+
+            document.getElementById("bulkUploadMessage").innerText =
+                candidates.length + " resumes uploaded successfully.";
+
+            document.getElementById("bulkUploadMessage").style.color = "green";
+
+            showBulkResults(candidates);
+
+            bulkUploadForm.reset();
+            loadJobsForBulkUpload();
+
+        } catch (error) {
+            console.log("Bulk upload error:", error);
+
+            document.getElementById("bulkUploadMessage").innerText =
+                "Failed to upload resumes. Check backend logs.";
+
+            document.getElementById("bulkUploadMessage").style.color = "red";
+        }
+    });
+
+    function showBulkResults(candidates) {
+        const tableBody = document.getElementById("bulkResultTable");
+
+        tableBody.innerHTML = "";
+
+        candidates.forEach(candidate => {
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${candidate.id}</td>
+                <td>${candidate.name}</td>
+                <td>${candidate.email}</td>
+                <td>${candidate.resumeScore ? candidate.resumeScore.toFixed(2) + "%" : "0%"}</td>
+                <td>${candidate.matchedSkills || "-"}</td>
+                <td>
+                    <span class="status-badge ${getStatusClass(candidate.status)}">
+                        ${candidate.status}
+                    </span>
+                </td>
+            `;
+
+            tableBody.appendChild(row);
+        });
+    }
+
+    function getStatusClass(status) {
+        if (status === "SHORTLISTED") return "status-shortlisted";
+        if (status === "UNDER_REVIEW") return "status-review";
+        if (status === "REJECTED") return "status-rejected";
+        if (status === "ONBOARDED") return "status-onboarded";
+        return "status-default";
+    }
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    loadJobsForBulkUpload();
+</script>
+
+</body>
+</html>

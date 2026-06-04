@@ -7,19 +7,41 @@
 <body>
 
 <div class="navbar">
-    <h2>HireAI</h2>
-    <div>
+    <div class="nav-brand">
+        <span class="brand-logo">HireAI</span>
+        <span class="brand-subtitle">HR Recruitment Platform</span>
+    </div>
+
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+
+    <label for="menuToggle" class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+
+    <div class="nav-menu">
         <a href="dashboard.html">Dashboard</a>
         <a href="create-job.html">Create Job</a>
         <a href="upload-resume.html">Upload Resume</a>
+        <a href="bulk-upload.html">Bulk Upload</a>
         <a href="candidates.html">Candidates</a>
+        <a href="ranking.html">Ranking</a>
+        <a href="video-interview.html">Video Interview</a>
+        <a href="interview-scorecard.html">Scorecard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="job-analytics.html">Job Analytics</a>
+        <a href="communication.html">Communication</a>
+        <a href="offer-letter.html">Offer Letter</a>
         <a href="analytics.html">Analytics</a>
-        <button onclick="logout()">Logout</button>
+
+        <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
 </div>
 
 <div class="container">
     <h1>Create Job</h1>
+    <p>Create a new job opening with required skills so the system can screen resumes against it.</p>
 
     <div class="form-card">
         <form id="createJobForm">
@@ -43,17 +65,44 @@
 </div>
 
 <script>
+    function protectHRPage() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const role = user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Access denied. This page is only for HR/Admin users.");
+            window.location.href = "candidate-dashboard.html";
+        }
+    }
+
+    protectHRPage();
+
     const form = document.getElementById("createJobForm");
 
     form.addEventListener("submit", async function(event) {
         event.preventDefault();
+
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const role = user && user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Only HR/Admin users can create jobs.");
+            window.location.href = "candidate-dashboard.html";
+            return;
+        }
 
         const jobData = {
             title: document.getElementById("jobTitle").value,
             description: document.getElementById("jobDescription").value,
             requiredSkills: document.getElementById("requiredSkills").value,
             experience: document.getElementById("experience").value,
-            createdBy: "HR User"
+            createdBy: user && user.name ? user.name : "HR User"
         };
 
         try {

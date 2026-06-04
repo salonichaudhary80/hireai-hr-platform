@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Interview Scorecard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-brand">
+        <span class="brand-logo">HireAI</span>
+        <span class="brand-subtitle">HR Recruitment Platform</span>
+    </div>
+
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+
+    <label for="menuToggle" class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+
+    <div class="nav-menu">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="bulk-upload.html">Bulk Upload</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="ranking.html">Ranking</a>
+        <a href="video-interview.html">Video Interview</a>
+        <a href="interview-scorecard.html">Scorecard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="job-analytics.html">Job Analytics</a>
+        <a href="communication.html">Communication</a>
+        <a href="offer-letter.html">Offer Letter</a>
+        <a href="analytics.html">Analytics</a>
+
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Interview Evaluation Scorecard</h1>
+    <p>Evaluate candidates after interview rounds and generate a final hiring recommendation.</p>
+
+    <div class="form-card">
+        <label>Select Candidate</label>
+        <select id="candidateSelect" onchange="loadSavedScorecard()" required>
+            <option value="">Select Candidate</option>
+        </select>
+
+        <label>Technical Skills Score</label>
+        <select id="technicalScore">
+            <option value="1">1 - Poor</option>
+            <option value="2">2 - Below Average</option>
+            <option value="3">3 - Average</option>
+            <option value="4">4 - Good</option>
+            <option value="5">5 - Excellent</option>
+        </select>
+
+        <label>Communication Score</label>
+        <select id="communicationScore">
+            <option value="1">1 - Poor</option>
+            <option value="2">2 - Below Average</option>
+            <option value="3">3 - Average</option>
+            <option value="4">4 - Good</option>
+            <option value="5">5 - Excellent</option>
+        </select>
+
+        <label>Problem Solving Score</label>
+        <select id="problemSolvingScore">
+            <option value="1">1 - Poor</option>
+            <option value="2">2 - Below Average</option>
+            <option value="3">3 - Average</option>
+            <option value="4">4 - Good</option>
+            <option value="5">5 - Excellent</option>
+        </select>
+
+        <label>Culture Fit Score</label>
+        <select id="cultureFitScore">
+            <option value="1">1 - Poor</option>
+            <option value="2">2 - Below Average</option>
+            <option value="3">3 - Average</option>
+            <option value="4">4 - Good</option>
+            <option value="5">5 - Excellent</option>
+        </select>
+
+        <label>Interview Feedback</label>
+        <textarea id="interviewFeedback" placeholder="Write interviewer feedback here..."></textarea>
+
+        <button onclick="saveScorecard()">Save Scorecard</button>
+        <button onclick="generateRecommendation()">Generate Recommendation</button>
+
+        <p id="scorecardMessage" class="message"></p>
+    </div>
+
+    <div class="section">
+        <h2>Evaluation Summary</h2>
+
+        <div class="cards">
+            <div class="card">
+                <h3>Interview Score</h3>
+                <p id="finalScore">0/20</p>
+            </div>
+
+            <div class="card">
+                <h3>Percentage</h3>
+                <p id="scorePercentage">0%</p>
+            </div>
+
+            <div class="card">
+                <h3>Recommendation</h3>
+                <p id="recommendation" style="font-size: 18px;">-</p>
+            </div>
+
+            <div class="card">
+                <h3>Resume Score</h3>
+                <p id="resumeScore">0%</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Saved Interview Feedback</h2>
+
+        <div class="form-card" style="max-width: 900px;">
+            <textarea id="savedFeedback" rows="10" readonly placeholder="Saved scorecard summary will appear here..."></textarea>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allCandidates = [];
+    let selectedCandidate = null;
+
+    function protectHRPage() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const role = user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Access denied. This page is only for HR/Admin users.");
+            window.location.href = "candidate-dashboard.html";
+        }
+    }
+
+    protectHRPage();
+
+    async function loadCandidates() {
+        try {
+            const response = await fetch("/api/candidates");
+
+            if (!response.ok) {
+                throw new Error("Failed to load candidates");
+            }
+
+            allCandidates = await response.json();
+
+            const candidateSelect = document.getElementById("candidateSelect");
+            candidateSelect.innerHTML = '<option value="">Select Candidate</option>';
+
+            allCandidates.forEach(candidate => {
+                const option = document.createElement("option");
+                option.value = candidate.id;
+                option.textContent = candidate.name + " - " + candidate.email + " - " + candidate.status;
+                candidateSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            console.log("Candidate loading error:", error);
+            document.getElementById("scorecardMessage").innerText = "Failed to load candidates.";
+            document.getElementById("scorecardMessage").style.color = "red";
+        }
+    }
+
+    function getSelectedCandidate() {
+        const candidateId = document.getElementById("candidateSelect").value;
+        selectedCandidate = allCandidates.find(candidate => candidate.id == candidateId);
+        return selectedCandidate;
+    }
+
+    function calculateScores() {
+        const technical = parseInt(document.getElementById("technicalScore").value);
+        const communication = parseInt(document.getElementById("communicationScore").value);
+        const problemSolving = parseInt(document.getElementById("problemSolvingScore").value);
+        const cultureFit = parseInt(document.getElementById("cultureFitScore").value);
+
+        const totalScore = technical + communication + problemSolving + cultureFit;
+        const percentage = (totalScore / 20) * 100;
+
+        return {
+            technical,
+            communication,
+            problemSolving,
+            cultureFit,
+            totalScore,
+            percentage
+        };
+    }
+
+    function generateRecommendation() {
+        const candidate = getSelectedCandidate();
+
+        if (!candidate) {
+            alert("Please select a candidate first.");
+            return;
+        }
+
+        const scores = calculateScores();
+
+        let recommendation = "";
+
+        if (scores.percentage >= 80) {
+            recommendation = "STRONG HIRE";
+        } else if (scores.percentage >= 65) {
+            recommendation = "HIRE";
+        } else if (scores.percentage >= 50) {
+            recommendation = "HOLD";
+        } else {
+            recommendation = "REJECT";
+        }
+
+        document.getElementById("finalScore").innerText = scores.totalScore + "/20";
+        document.getElementById("scorePercentage").innerText = scores.percentage.toFixed(2) + "%";
+        document.getElementById("recommendation").innerText = recommendation;
+        document.getElementById("resumeScore").innerText =
+            candidate.resumeScore ? candidate.resumeScore.toFixed(2) + "%" : "0%";
+
+        return recommendation;
+    }
+
+    function saveScorecard() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const role = user && user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Only HR/Admin users can save scorecards.");
+            window.location.href = "candidate-dashboard.html";
+            return;
+        }
+
+        const candidate = getSelectedCandidate();
+
+        if (!candidate) {
+            alert("Please select a candidate first.");
+            return;
+        }
+
+        const scores = calculateScores();
+        const recommendation = generateRecommendation();
+        const feedback = document.getElementById("interviewFeedback").value;
+
+        const scorecard = {
+            candidateId: candidate.id,
+            candidateName: candidate.name,
+            email: candidate.email,
+            resumeScore: candidate.resumeScore || 0,
+            technicalScore: scores.technical,
+            communicationScore: scores.communication,
+            problemSolvingScore: scores.problemSolving,
+            cultureFitScore: scores.cultureFit,
+            totalScore: scores.totalScore,
+            percentage: scores.percentage,
+            recommendation: recommendation,
+            feedback: feedback,
+            savedAt: new Date().toLocaleString()
+        };
+
+        localStorage.setItem("scorecard_" + candidate.id, JSON.stringify(scorecard));
+
+        showSavedScorecard(scorecard);
+
+        document.getElementById("scorecardMessage").innerText = "Interview scorecard saved successfully.";
+        document.getElementById("scorecardMessage").style.color = "green";
+    }
+
+    function loadSavedScorecard() {
+        const candidate = getSelectedCandidate();
+
+        if (!candidate) {
+            return;
+        }
+
+        document.getElementById("resumeScore").innerText =
+            candidate.resumeScore ? candidate.resumeScore.toFixed(2) + "%" : "0%";
+
+        const saved = localStorage.getItem("scorecard_" + candidate.id);
+
+        if (!saved) {
+            document.getElementById("savedFeedback").value = "";
+            document.getElementById("finalScore").innerText = "0/20";
+            document.getElementById("scorePercentage").innerText = "0%";
+            document.getElementById("recommendation").innerText = "-";
+            return;
+        }
+
+        const scorecard = JSON.parse(saved);
+
+        document.getElementById("technicalScore").value = scorecard.technicalScore;
+        document.getElementById("communicationScore").value = scorecard.communicationScore;
+        document.getElementById("problemSolvingScore").value = scorecard.problemSolvingScore;
+        document.getElementById("cultureFitScore").value = scorecard.cultureFitScore;
+        document.getElementById("interviewFeedback").value = scorecard.feedback || "";
+
+        document.getElementById("finalScore").innerText = scorecard.totalScore + "/20";
+        document.getElementById("scorePercentage").innerText = scorecard.percentage.toFixed(2) + "%";
+        document.getElementById("recommendation").innerText = scorecard.recommendation;
+        document.getElementById("resumeScore").innerText = scorecard.resumeScore.toFixed(2) + "%";
+
+        showSavedScorecard(scorecard);
+    }
+
+    function showSavedScorecard(scorecard) {
+        document.getElementById("savedFeedback").value =
+`Candidate Name: ${scorecard.candidateName}
+Email: ${scorecard.email}
+Resume Score: ${scorecard.resumeScore.toFixed(2)}%
+
+Technical Skills: ${scorecard.technicalScore}/5
+Communication: ${scorecard.communicationScore}/5
+Problem Solving: ${scorecard.problemSolvingScore}/5
+Culture Fit: ${scorecard.cultureFitScore}/5
+
+Final Interview Score: ${scorecard.totalScore}/20
+Percentage: ${scorecard.percentage.toFixed(2)}%
+Recommendation: ${scorecard.recommendation}
+
+Interviewer Feedback:
+${scorecard.feedback || "No feedback added."}
+
+Saved At: ${scorecard.savedAt}`;
+    }
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    loadCandidates();
+</script>
+
+</body>
+</html>

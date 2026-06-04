@@ -7,19 +7,68 @@
 <body>
 
 <div class="navbar">
-    <h2>HireAI</h2>
-    <div>
+    <div class="nav-brand">
+        <span class="brand-logo">HireAI</span>
+        <span class="brand-subtitle">HR Recruitment Platform</span>
+    </div>
+
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+
+    <label for="menuToggle" class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+
+    <div class="nav-menu">
         <a href="dashboard.html">Dashboard</a>
         <a href="create-job.html">Create Job</a>
         <a href="upload-resume.html">Upload Resume</a>
+        <a href="bulk-upload.html">Bulk Upload</a>
         <a href="candidates.html">Candidates</a>
+        <a href="ranking.html">Ranking</a>
+        <a href="video-interview.html">Video Interview</a>
+        <a href="interview-scorecard.html">Scorecard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="job-analytics.html">Job Analytics</a>
+        <a href="communication.html">Communication</a>
+        <a href="offer-letter.html">Offer Letter</a>
         <a href="analytics.html">Analytics</a>
-        <button onclick="logout()">Logout</button>
+
+        <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
 </div>
 
 <div class="container">
     <h1>Candidate List</h1>
+    <p>View, search, filter, export, and update candidate hiring status.</p>
+
+    <div class="form-card" style="max-width: 100%; margin-bottom: 20px;">
+        <h3>Search & Filter Candidates</h3>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px;">
+            <div>
+                <label>Search Candidate</label>
+                <input type="text" id="candidateSearch" placeholder="Search by name, email, or phone">
+            </div>
+
+            <div>
+                <label>Filter by Status</label>
+                <select id="statusFilter">
+                    <option value="ALL">ALL</option>
+                    <option value="SHORTLISTED">SHORTLISTED</option>
+                    <option value="UNDER_REVIEW">UNDER_REVIEW</option>
+                    <option value="REJECTED">REJECTED</option>
+                    <option value="ONBOARDED">ONBOARDED</option>
+                    <option value="VIDEO_SUBMITTED">VIDEO_SUBMITTED</option>
+                </select>
+            </div>
+
+            <div style="display: flex; align-items: end;">
+                <button onclick="exportCandidatesToCSV()">Export CSV</button>
+            </div>
+        </div>
+    </div>
 
     <table class="table">
         <thead>
@@ -42,6 +91,26 @@
 </div>
 
 <script>
+    let allCandidates = [];
+
+    function protectHRPage() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const role = user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Access denied. This page is only for HR/Admin users.");
+            window.location.href = "candidate-dashboard.html";
+        }
+    }
+
+    protectHRPage();
+
     async function loadCandidates() {
         try {
             const response = await fetch("/api/candidates");
@@ -50,41 +119,9 @@
                 throw new Error("Failed to load candidates");
             }
 
-            const candidates = await response.json();
-            const tableBody = document.getElementById("candidateTableBody");
+            allCandidates = await response.json();
 
-            tableBody.innerHTML = "";
-
-            if (candidates.length === 0) {
-                document.getElementById("candidateMessage").innerText = "No candidates found.";
-                document.getElementById("candidateMessage").style.color = "red";
-                return;
-            }
-
-            candidates.forEach(candidate => {
-                const row = document.createElement("tr");
-
-                row.innerHTML = `
-                    <td>${candidate.id}</td>
-                    <td>${candidate.name}</td>
-                    <td>${candidate.email}</td>
-                    <td>${candidate.phone}</td>
-                    <td>${candidate.resumeScore ? candidate.resumeScore.toFixed(2) + "%" : "0%"}</td>
-                    <td>${candidate.matchedSkills || "-"}</td>
-                    <td>${candidate.status}</td>
-                    <td>
-                        <select id="status-${candidate.id}">
-                            <option value="SHORTLISTED">SHORTLISTED</option>
-                            <option value="UNDER_REVIEW">UNDER_REVIEW</option>
-                            <option value="REJECTED">REJECTED</option>
-                            <option value="ONBOARDED">ONBOARDED</option>
-                        </select>
-                        <button onclick="updateStatus(${candidate.id})">Update</button>
-                    </td>
-                `;
-
-                tableBody.appendChild(row);
-            });
+            renderCandidates(allCandidates);
 
         } catch (error) {
             console.log("Candidate loading error:", error);
@@ -93,7 +130,94 @@
         }
     }
 
+    function renderCandidates(candidates) {
+        const tableBody = document.getElementById("candidateTableBody");
+        const message = document.getElementById("candidateMessage");
+
+        tableBody.innerHTML = "";
+        message.innerText = "";
+
+        if (candidates.length === 0) {
+            message.innerText = "No candidates found.";
+            message.style.color = "red";
+            return;
+        }
+
+        candidates.forEach(candidate => {
+            const row = document.createElement("tr");
+
+            const score = candidate.resumeScore ? candidate.resumeScore.toFixed(2) + "%" : "0%";
+
+            row.innerHTML = `
+                <td>${candidate.id}</td>
+                <td>${candidate.name}</td>
+                <td>${candidate.email}</td>
+                <td>${candidate.phone}</td>
+                <td>${score}</td>
+                <td>${candidate.matchedSkills || "-"}</td>
+                <td>
+                    <span class="status-badge ${getStatusClass(candidate.status)}">
+                        ${candidate.status}
+                    </span>
+                </td>
+                <td>
+                    <select id="status-${candidate.id}">
+                        <option value="SHORTLISTED">SHORTLISTED</option>
+                        <option value="UNDER_REVIEW">UNDER_REVIEW</option>
+                        <option value="REJECTED">REJECTED</option>
+                        <option value="VIDEO_SUBMITTED">VIDEO_SUBMITTED</option>
+                        <option value="ONBOARDED">ONBOARDED</option>
+                    </select>
+                    <button onclick="updateStatus(${candidate.id})">Update</button>
+                </td>
+            `;
+
+            tableBody.appendChild(row);
+        });
+    }
+
+    function getStatusClass(status) {
+        if (status === "SHORTLISTED") return "status-shortlisted";
+        if (status === "UNDER_REVIEW") return "status-review";
+        if (status === "REJECTED") return "status-rejected";
+        if (status === "ONBOARDED") return "status-onboarded";
+        return "status-default";
+    }
+
+    function applyFilters() {
+        const searchText = document.getElementById("candidateSearch").value.toLowerCase();
+        const selectedStatus = document.getElementById("statusFilter").value;
+
+        let filteredCandidates = allCandidates.filter(candidate => {
+            const name = candidate.name ? candidate.name.toLowerCase() : "";
+            const email = candidate.email ? candidate.email.toLowerCase() : "";
+            const phone = candidate.phone ? candidate.phone.toLowerCase() : "";
+            const status = candidate.status ? candidate.status : "";
+
+            const matchesSearch =
+                name.includes(searchText) ||
+                email.includes(searchText) ||
+                phone.includes(searchText);
+
+            const matchesStatus =
+                selectedStatus === "ALL" || status === selectedStatus;
+
+            return matchesSearch && matchesStatus;
+        });
+
+        renderCandidates(filteredCandidates);
+    }
+
     async function updateStatus(candidateId) {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const role = user && user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Only HR/Admin users can update candidate status.");
+            window.location.href = "candidate-dashboard.html";
+            return;
+        }
+
         const status = document.getElementById("status-" + candidateId).value;
 
         try {
@@ -114,10 +238,66 @@
         }
     }
 
+    function exportCandidatesToCSV() {
+        if (allCandidates.length === 0) {
+            alert("No candidates available to export.");
+            return;
+        }
+
+        const searchText = document.getElementById("candidateSearch").value.toLowerCase();
+        const selectedStatus = document.getElementById("statusFilter").value;
+
+        const filteredCandidates = allCandidates.filter(candidate => {
+            const name = candidate.name ? candidate.name.toLowerCase() : "";
+            const email = candidate.email ? candidate.email.toLowerCase() : "";
+            const phone = candidate.phone ? candidate.phone.toLowerCase() : "";
+            const status = candidate.status ? candidate.status : "";
+
+            const matchesSearch =
+                name.includes(searchText) ||
+                email.includes(searchText) ||
+                phone.includes(searchText);
+
+            const matchesStatus =
+                selectedStatus === "ALL" || status === selectedStatus;
+
+            return matchesSearch && matchesStatus;
+        });
+
+        let csvContent = "ID,Name,Email,Phone,Resume Score,Matched Skills,Status\n";
+
+        filteredCandidates.forEach(candidate => {
+            const row = [
+                candidate.id,
+                candidate.name,
+                candidate.email,
+                candidate.phone,
+                candidate.resumeScore ? candidate.resumeScore.toFixed(2) : 0,
+                candidate.matchedSkills || "-",
+                candidate.status
+            ];
+
+            csvContent += row.map(value => `"${value}"`).join(",") + "\n";
+        });
+
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "hireai_candidates_report.csv";
+        link.click();
+
+        window.URL.revokeObjectURL(url);
+    }
+
     function logout() {
         localStorage.removeItem("loggedInUser");
         window.location.href = "index.html";
     }
+
+    document.getElementById("candidateSearch").addEventListener("input", applyFilters);
+    document.getElementById("statusFilter").addEventListener("change", applyFilters);
 
     loadCandidates();
 </script>

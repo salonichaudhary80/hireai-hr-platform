@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Video Interview</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-brand">
+        <span class="brand-logo">HireAI</span>
+        <span class="brand-subtitle">HR Recruitment Platform</span>
+    </div>
+
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+
+    <label for="menuToggle" class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+
+    <div class="nav-menu">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="bulk-upload.html">Bulk Upload</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="ranking.html">Ranking</a>
+        <a href="video-interview.html">Video Interview</a>
+        <a href="interview-scorecard.html">Scorecard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="job-analytics.html">Job Analytics</a>
+        <a href="communication.html">Communication</a>
+        <a href="offer-letter.html">Offer Letter</a>
+        <a href="analytics.html">Analytics</a>
+
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Video Interview Upload</h1>
+    <p>Upload candidate video interviews and update their hiring status.</p>
+
+    <div class="form-card">
+        <form id="videoInterviewForm">
+
+            <label>Select Candidate</label>
+            <select id="candidateSelect" required>
+                <option value="">Select Candidate</option>
+            </select>
+
+            <label>Upload Video Interview</label>
+            <input type="file" id="videoFile" accept="video/*" required>
+
+            <button type="submit">Upload Video</button>
+        </form>
+
+        <p id="videoMessage" class="message"></p>
+    </div>
+
+    <div class="section">
+        <h2>Candidate Video Status</h2>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Candidate ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Resume Score</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="videoCandidateTable">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function protectHRPage() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const role = user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Access denied. This page is only for HR/Admin users.");
+            window.location.href = "candidate-dashboard.html";
+        }
+    }
+
+    protectHRPage();
+
+    async function loadCandidatesForVideo() {
+        try {
+            const response = await fetch("/api/candidates");
+
+            if (!response.ok) {
+                throw new Error("Failed to load candidates");
+            }
+
+            const candidates = await response.json();
+
+            const candidateSelect = document.getElementById("candidateSelect");
+            const tableBody = document.getElementById("videoCandidateTable");
+
+            candidateSelect.innerHTML = '<option value="">Select Candidate</option>';
+            tableBody.innerHTML = "";
+
+            if (candidates.length === 0) {
+                document.getElementById("videoMessage").innerText = "No candidates available. Please upload resumes first.";
+                document.getElementById("videoMessage").style.color = "red";
+                return;
+            }
+
+            candidates.forEach(candidate => {
+                const option = document.createElement("option");
+                option.value = candidate.id;
+                option.textContent = candidate.name + " - " + candidate.email + " - " + candidate.status;
+                candidateSelect.appendChild(option);
+
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${candidate.id}</td>
+                    <td>${candidate.name}</td>
+                    <td>${candidate.email}</td>
+                    <td>${candidate.resumeScore ? candidate.resumeScore.toFixed(2) + "%" : "0%"}</td>
+                    <td>
+                        <span class="status-badge ${getStatusClass(candidate.status)}">
+                            ${candidate.status}
+                        </span>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+
+        } catch (error) {
+            console.log("Candidate loading error:", error);
+            document.getElementById("videoMessage").innerText = "Failed to load candidates.";
+            document.getElementById("videoMessage").style.color = "red";
+        }
+    }
+
+    const videoInterviewForm = document.getElementById("videoInterviewForm");
+
+    videoInterviewForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const role = user && user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Only HR/Admin users can upload video interviews.");
+            window.location.href = "candidate-dashboard.html";
+            return;
+        }
+
+        const candidateId = document.getElementById("candidateSelect").value;
+        const videoFile = document.getElementById("videoFile").files[0];
+
+        if (!candidateId) {
+            alert("Please select a candidate.");
+            return;
+        }
+
+        if (!videoFile) {
+            alert("Please select a video file.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("video", videoFile);
+
+        try {
+            document.getElementById("videoMessage").innerText = "Uploading video interview...";
+            document.getElementById("videoMessage").style.color = "blue";
+
+            const response = await fetch(`/api/candidates/${candidateId}/video`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Video upload failed with status: " + response.status);
+            }
+
+            const candidate = await response.json();
+
+            document.getElementById("videoMessage").innerText =
+                "Video interview uploaded successfully for " + candidate.name + ". Status: " + candidate.status;
+
+            document.getElementById("videoMessage").style.color = "green";
+
+            videoInterviewForm.reset();
+            loadCandidatesForVideo();
+
+        } catch (error) {
+            console.log("Video upload error:", error);
+
+            document.getElementById("videoMessage").innerText =
+                "Failed to upload video. Check backend logs.";
+
+            document.getElementById("videoMessage").style.color = "red";
+        }
+    });
+
+    function getStatusClass(status) {
+        if (status === "SHORTLISTED") return "status-shortlisted";
+        if (status === "UNDER_REVIEW") return "status-review";
+        if (status === "REJECTED") return "status-rejected";
+        if (status === "ONBOARDED") return "status-onboarded";
+        return "status-default";
+    }
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    loadCandidatesForVideo();
+</script>
+
+</body>
+</html>

@@ -5,54 +5,76 @@
 
 body {
     margin: 0;
-    background: #f4f6f8;
-    color: #222;
+    background: #f4f7fb;
+    color: #1f2937;
 }
 
+/* Auth Pages */
 .auth-container {
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #1d3557, #457b9d);
 }
 
 .auth-card {
     background: white;
     width: 420px;
-    padding: 35px;
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    padding: 38px;
+    border-radius: 18px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
 }
 
 .auth-card h1 {
     text-align: center;
     margin-bottom: 5px;
     color: #1d3557;
+    font-size: 34px;
 }
 
 .subtitle {
     text-align: center;
-    color: #666;
-    margin-bottom: 25px;
+    color: #667085;
+    margin-bottom: 28px;
 }
 
 .auth-card h2 {
     margin-bottom: 20px;
+    color: #111827;
 }
 
 label {
     font-weight: bold;
     margin-top: 12px;
     display: block;
+    color: #374151;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
     width: 100%;
-    padding: 12px;
+    padding: 12px 14px;
     margin-top: 6px;
     margin-bottom: 14px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    background: white;
+    outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #1d3557;
+    box-shadow: 0 0 0 3px rgba(29, 53, 87, 0.12);
+}
+
+textarea {
+    min-height: 120px;
+    resize: vertical;
 }
 
 button {
@@ -60,13 +82,15 @@ button {
     color: white;
     border: none;
     padding: 12px 18px;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     font-weight: bold;
+    transition: 0.2s ease;
 }
 
 button:hover {
     background: #0f2238;
+    transform: translateY(-1px);
 }
 
 .bottom-text {
@@ -86,28 +110,125 @@ a {
     margin-top: 15px;
 }
 
+/* Organized Navbar */
 .navbar {
     background: #1d3557;
     color: white;
-    padding: 16px 35px;
+    padding: 14px 28px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
 }
 
-.navbar a {
-    color: white;
-    margin-right: 18px;
+.nav-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.navbar button {
+.brand-logo {
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.brand-subtitle {
+    font-size: 12px;
+    color: #dbeafe;
+    font-weight: normal;
+}
+
+.menu-toggle {
+    display: none;
+}
+
+.hamburger {
+    width: 42px;
+    height: 38px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.hamburger span {
+    height: 3px;
+    width: 100%;
+    background: white;
+    border-radius: 5px;
+    display: block;
+}
+
+.nav-menu {
+    position: absolute;
+    top: 72px;
+    right: 28px;
+    background: white;
+    width: 310px;
+    max-height: 78vh;
+    overflow-y: auto;
+    border-radius: 16px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.20);
+    padding: 14px;
+    display: none;
+    border: 1px solid #e5e7eb;
+}
+
+.menu-toggle:checked ~ .nav-menu {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.nav-menu a {
+    color: #1d3557;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #eef2f7;
+    transition: 0.2s ease;
+}
+
+.nav-menu a:hover {
+    background: #e8f0fb;
+    transform: translateX(3px);
+}
+
+.logout-btn {
     background: #e63946;
+    width: 100%;
+    margin-top: 8px;
 }
 
+.logout-btn:hover {
+    background: #c82333;
+}
+
+/* Page Layout */
 .container {
     padding: 35px;
 }
 
+.container h1 {
+    margin-top: 0;
+    color: #111827;
+    font-size: 32px;
+}
+
+.container p {
+    color: #4b5563;
+}
+
+/* Cards */
 .cards {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -118,21 +239,25 @@ a {
 .card {
     background: white;
     padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    border: 1px solid #eef2f7;
 }
 
 .card h3 {
     margin: 0;
-    color: #444;
+    color: #475467;
+    font-size: 16px;
 }
 
 .card p {
     font-size: 32px;
     font-weight: bold;
     color: #1d3557;
+    margin-bottom: 0;
 }
 
+/* Sections */
 .section {
     margin-top: 35px;
 }
@@ -146,21 +271,37 @@ a {
 .module-card {
     background: white;
     padding: 22px;
-    border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    border: 1px solid #eef2f7;
 }
 
+.form-card {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    max-width: 760px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    border: 1px solid #eef2f7;
+}
+
+/* Tables */
 .table {
     width: 100%;
     border-collapse: collapse;
     background: white;
     margin-top: 20px;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
 }
 
-.table th, .table td {
+.table th,
+.table td {
     padding: 14px;
-    border: 1px solid #ddd;
+    border: 1px solid #eef2f7;
     text-align: left;
+    vertical-align: top;
 }
 
 .table th {
@@ -168,10 +309,96 @@ a {
     color: white;
 }
 
-.form-card {
-    background: white;
-    padding: 30px;
-    border-radius: 12px;
-    max-width: 700px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+.table tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+.table tr:hover {
+    background: #eef6ff;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 7px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.status-shortlisted {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-review {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-onboarded {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-default {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .cards,
+    .module-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+    .navbar {
+        padding: 12px 18px;
+    }
+
+    .brand-logo {
+        font-size: 24px;
+    }
+
+    .brand-subtitle {
+        display: none;
+    }
+
+    .nav-menu {
+        right: 18px;
+        left: 18px;
+        width: auto;
+        top: 66px;
+    }
+
+    .cards,
+    .module-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        padding: 20px;
+    }
+
+    .auth-card {
+        width: 100%;
+    }
+
+    .form-card {
+        max-width: 100%;
+    }
+
+    .table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
 }

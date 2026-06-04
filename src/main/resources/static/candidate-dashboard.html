@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Candidate Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-brand">
+        <span class="brand-logo">HireAI</span>
+        <span class="brand-subtitle">Candidate Portal</span>
+    </div>
+
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+
+    <label for="menuToggle" class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+
+    <div class="nav-menu">
+        <a href="candidate-dashboard.html">Candidate Dashboard</a>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Candidate Dashboard</h1>
+    <p id="candidateWelcome">Welcome candidate.</p>
+
+    <div class="cards">
+        <div class="card">
+            <h3>Portal Access</h3>
+            <p style="font-size: 20px;">Candidate Only</p>
+        </div>
+
+        <div class="card">
+            <h3>Application Step</h3>
+            <p style="font-size: 20px;">Submit Resume</p>
+        </div>
+
+        <div class="card">
+            <h3>Status</h3>
+            <p style="font-size: 20px;">Ready to Apply</p>
+        </div>
+
+        <div class="card">
+            <h3>Hiring Flow</h3>
+            <p style="font-size: 20px;">Resume → Interview → Onboarding</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Submit Job Application</h2>
+
+        <div class="form-card">
+            <form id="candidateApplicationForm">
+
+                <label>Select Job</label>
+                <select id="jobSelect" required>
+                    <option value="">Select Job</option>
+                </select>
+
+                <label>Your Name</label>
+                <input type="text" id="candidateName" placeholder="Enter your name" required>
+
+                <label>Email</label>
+                <input type="email" id="candidateEmail" placeholder="Enter your email" required>
+
+                <label>Phone</label>
+                <input type="text" id="candidatePhone" placeholder="Enter your phone number" required>
+
+                <label>Upload Resume PDF</label>
+                <input type="file" id="resumeFile" accept=".pdf" required>
+
+                <button type="submit">Submit Application</button>
+            </form>
+
+            <p id="applicationMessage" class="message"></p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Candidate Instructions</h2>
+
+        <div class="form-card">
+            <p>You are logged in as a candidate.</p>
+            <p>You can select an available job and submit your resume for screening.</p>
+            <p>After submission, HR will review your profile and update your application status.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function protectCandidatePage() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const role = user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "CANDIDATE") {
+            window.location.href = "dashboard.html";
+        }
+    }
+
+    function fillCandidateDetails() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (user && user.name) {
+            document.getElementById("candidateWelcome").innerText =
+                "Welcome, " + user.name + " (" + user.role + ")";
+
+            document.getElementById("candidateName").value = user.name;
+        }
+
+        if (user && user.email) {
+            document.getElementById("candidateEmail").value = user.email;
+        }
+    }
+
+    async function loadJobs() {
+        try {
+            const response = await fetch("/api/jobs");
+
+            if (!response.ok) {
+                throw new Error("Failed to load jobs");
+            }
+
+            const jobs = await response.json();
+            const jobSelect = document.getElementById("jobSelect");
+
+            jobSelect.innerHTML = '<option value="">Select Job</option>';
+
+            if (jobs.length === 0) {
+                document.getElementById("applicationMessage").innerText =
+                    "No jobs available right now. Please check later.";
+                document.getElementById("applicationMessage").style.color = "red";
+                return;
+            }
+
+            jobs.forEach(job => {
+                const option = document.createElement("option");
+                option.value = job.id;
+                option.textContent = job.title + " - " + job.experience;
+                jobSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            console.log("Job loading error:", error);
+            document.getElementById("applicationMessage").innerText = "Failed to load jobs.";
+            document.getElementById("applicationMessage").style.color = "red";
+        }
+    }
+
+    const form = document.getElementById("candidateApplicationForm");
+
+    form.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const jobId = document.getElementById("jobSelect").value;
+        const name = document.getElementById("candidateName").value;
+        const email = document.getElementById("candidateEmail").value;
+        const phone = document.getElementById("candidatePhone").value;
+        const resumeFile = document.getElementById("resumeFile").files[0];
+
+        if (!jobId) {
+            alert("Please select a job.");
+            return;
+        }
+
+        if (!resumeFile) {
+            alert("Please upload your resume PDF.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("jobId", jobId);
+        formData.append("name", name);
+        formData.append("email", email);
+        formData.append("phone", phone);
+        formData.append("resume", resumeFile);
+
+        try {
+            document.getElementById("applicationMessage").innerText = "Submitting application...";
+            document.getElementById("applicationMessage").style.color = "blue";
+
+            const response = await fetch("/api/candidates/apply", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Application submission failed with status: " + response.status);
+            }
+
+            const candidate = await response.json();
+
+            document.getElementById("applicationMessage").innerText =
+                "Application submitted successfully. Resume Score: " +
+                (candidate.resumeScore ? candidate.resumeScore.toFixed(2) : "0.00") +
+                "%, Status: " +
+                candidate.status;
+
+            document.getElementById("applicationMessage").style.color = "green";
+
+            document.getElementById("resumeFile").value = "";
+
+        } catch (error) {
+            console.log("Application submission error:", error);
+
+            document.getElementById("applicationMessage").innerText =
+                "Failed to submit application. Please try again.";
+
+            document.getElementById("applicationMessage").style.color = "red";
+        }
+    });
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    protectCandidatePage();
+    fillCandidateDetails();
+    loadJobs();
+</script>
+
+</body>
+</html>

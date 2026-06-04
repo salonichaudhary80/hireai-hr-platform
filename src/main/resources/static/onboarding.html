@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Onboarding Tracker</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-brand">
+        <span class="brand-logo">HireAI</span>
+        <span class="brand-subtitle">HR Recruitment Platform</span>
+    </div>
+
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+
+    <label for="menuToggle" class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+
+    <div class="nav-menu">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="bulk-upload.html">Bulk Upload</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="ranking.html">Ranking</a>
+        <a href="video-interview.html">Video Interview</a>
+        <a href="interview-scorecard.html">Scorecard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="job-analytics.html">Job Analytics</a>
+        <a href="communication.html">Communication</a>
+        <a href="offer-letter.html">Offer Letter</a>
+        <a href="analytics.html">Analytics</a>
+
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Candidate Onboarding Tracker</h1>
+    <p>Track selected candidate onboarding tasks from offer to joining.</p>
+
+    <div class="form-card">
+        <label>Select Candidate</label>
+        <select id="candidateSelect" onchange="loadOnboardingChecklist()" required>
+            <option value="">Select Candidate</option>
+        </select>
+
+        <p id="candidateInfo" class="message"></p>
+    </div>
+
+    <div class="section">
+        <h2>Onboarding Checklist</h2>
+
+        <div class="form-card" style="max-width: 900px;">
+            <label>
+                <input type="checkbox" class="onboarding-task" value="Offer Letter Sent">
+                Offer Letter Sent
+            </label>
+
+            <label>
+                <input type="checkbox" class="onboarding-task" value="Offer Accepted">
+                Offer Accepted
+            </label>
+
+            <label>
+                <input type="checkbox" class="onboarding-task" value="Documents Collected">
+                Documents Collected
+            </label>
+
+            <label>
+                <input type="checkbox" class="onboarding-task" value="Background Verification Done">
+                Background Verification Done
+            </label>
+
+            <label>
+                <input type="checkbox" class="onboarding-task" value="Company Email Created">
+                Company Email Created
+            </label>
+
+            <label>
+                <input type="checkbox" class="onboarding-task" value="Laptop / System Assigned">
+                Laptop / System Assigned
+            </label>
+
+            <label>
+                <input type="checkbox" class="onboarding-task" value="HR Induction Completed">
+                HR Induction Completed
+            </label>
+
+            <label>
+                <input type="checkbox" class="onboarding-task" value="Team Introduction Completed">
+                Team Introduction Completed
+            </label>
+
+            <br><br>
+
+            <button onclick="saveChecklist()">Save Checklist</button>
+            <button onclick="markCandidateOnboarded()">Mark Candidate Onboarded</button>
+
+            <p id="onboardingMessage" class="message"></p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Onboarding Progress</h2>
+
+        <div class="cards">
+            <div class="card">
+                <h3>Total Tasks</h3>
+                <p id="totalTasks">8</p>
+            </div>
+
+            <div class="card">
+                <h3>Completed</h3>
+                <p id="completedTasks">0</p>
+            </div>
+
+            <div class="card">
+                <h3>Pending</h3>
+                <p id="pendingTasks">8</p>
+            </div>
+
+            <div class="card">
+                <h3>Progress</h3>
+                <p id="progressPercent">0%</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedCandidate = null;
+    let allCandidates = [];
+
+    function protectHRPage() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const role = user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Access denied. This page is only for HR/Admin users.");
+            window.location.href = "candidate-dashboard.html";
+        }
+    }
+
+    protectHRPage();
+
+    async function loadCandidates() {
+        try {
+            const response = await fetch("/api/candidates");
+
+            if (!response.ok) {
+                throw new Error("Failed to load candidates");
+            }
+
+            allCandidates = await response.json();
+
+            const candidateSelect = document.getElementById("candidateSelect");
+            candidateSelect.innerHTML = '<option value="">Select Candidate</option>';
+
+            allCandidates.forEach(candidate => {
+                const option = document.createElement("option");
+                option.value = candidate.id;
+                option.textContent = candidate.name + " - " + candidate.email + " - " + candidate.status;
+                candidateSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            console.log("Candidate loading error:", error);
+            document.getElementById("onboardingMessage").innerText = "Failed to load candidates.";
+            document.getElementById("onboardingMessage").style.color = "red";
+        }
+    }
+
+    function loadOnboardingChecklist() {
+        const candidateId = document.getElementById("candidateSelect").value;
+
+        selectedCandidate = allCandidates.find(candidate => candidate.id == candidateId);
+
+        if (!selectedCandidate) {
+            document.getElementById("candidateInfo").innerText = "";
+            resetChecklist();
+            return;
+        }
+
+        document.getElementById("candidateInfo").innerText =
+            "Selected Candidate: " + selectedCandidate.name +
+            " | Score: " + (selectedCandidate.resumeScore ? selectedCandidate.resumeScore.toFixed(2) : 0) + "%" +
+            " | Current Status: " + selectedCandidate.status;
+
+        const savedTasks = JSON.parse(localStorage.getItem("onboarding_" + candidateId)) || [];
+
+        const checkboxes = document.querySelectorAll(".onboarding-task");
+
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = savedTasks.includes(checkbox.value);
+        });
+
+        updateProgress();
+    }
+
+    function resetChecklist() {
+        const checkboxes = document.querySelectorAll(".onboarding-task");
+
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        updateProgress();
+    }
+
+    function saveChecklist() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const role = user && user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Only HR/Admin users can save onboarding checklist.");
+            window.location.href = "candidate-dashboard.html";
+            return;
+        }
+
+        const candidateId = document.getElementById("candidateSelect").value;
+
+        if (!candidateId) {
+            alert("Please select a candidate first.");
+            return;
+        }
+
+        const selectedTasks = [];
+
+        const checkboxes = document.querySelectorAll(".onboarding-task");
+
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                selectedTasks.push(checkbox.value);
+            }
+        });
+
+        localStorage.setItem("onboarding_" + candidateId, JSON.stringify(selectedTasks));
+
+        document.getElementById("onboardingMessage").innerText = "Onboarding checklist saved successfully.";
+        document.getElementById("onboardingMessage").style.color = "green";
+
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const checkboxes = document.querySelectorAll(".onboarding-task");
+        const total = checkboxes.length;
+
+        let completed = 0;
+
+        checkboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                completed++;
+            }
+        });
+
+        const pending = total - completed;
+        const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+        document.getElementById("totalTasks").innerText = total;
+        document.getElementById("completedTasks").innerText = completed;
+        document.getElementById("pendingTasks").innerText = pending;
+        document.getElementById("progressPercent").innerText = percent + "%";
+    }
+
+    async function markCandidateOnboarded() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+        const role = user && user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Only HR/Admin users can mark candidates onboarded.");
+            window.location.href = "candidate-dashboard.html";
+            return;
+        }
+
+        const candidateId = document.getElementById("candidateSelect").value;
+
+        if (!candidateId) {
+            alert("Please select a candidate first.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/candidates/${candidateId}/status?status=ONBOARDED`, {
+                method: "PUT"
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to update candidate status");
+            }
+
+            saveChecklist();
+
+            document.getElementById("onboardingMessage").innerText =
+                "Candidate marked as ONBOARDED successfully.";
+
+            document.getElementById("onboardingMessage").style.color = "green";
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+
+        } catch (error) {
+            console.log("Onboarding status update error:", error);
+            document.getElementById("onboardingMessage").innerText = "Failed to mark candidate onboarded.";
+            document.getElementById("onboardingMessage").style.color = "red";
+        }
+    }
+
+    document.addEventListener("change", function(event) {
+        if (event.target.classList.contains("onboarding-task")) {
+            updateProgress();
+        }
+    });
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    loadCandidates();
+</script>
+
+</body>
+</html>

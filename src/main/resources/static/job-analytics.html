@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HireAI - Job Analytics</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <div class="nav-brand">
+        <span class="brand-logo">HireAI</span>
+        <span class="brand-subtitle">HR Recruitment Platform</span>
+    </div>
+
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+
+    <label for="menuToggle" class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </label>
+
+    <div class="nav-menu">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-job.html">Create Job</a>
+        <a href="upload-resume.html">Upload Resume</a>
+        <a href="bulk-upload.html">Bulk Upload</a>
+        <a href="candidates.html">Candidates</a>
+        <a href="ranking.html">Ranking</a>
+        <a href="video-interview.html">Video Interview</a>
+        <a href="interview-scorecard.html">Scorecard</a>
+        <a href="onboarding.html">Onboarding</a>
+        <a href="job-analytics.html">Job Analytics</a>
+        <a href="communication.html">Communication</a>
+        <a href="offer-letter.html">Offer Letter</a>
+        <a href="analytics.html">Analytics</a>
+
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Job-wise Candidate Analytics</h1>
+    <p>Select a job to view candidate performance and hiring status for that specific role.</p>
+
+    <div class="form-card">
+        <label>Select Job</label>
+        <select id="jobSelect" onchange="loadJobCandidates()" required>
+            <option value="">Select Job</option>
+        </select>
+
+        <p id="jobAnalyticsMessage" class="message"></p>
+    </div>
+
+    <div class="cards">
+        <div class="card">
+            <h3>Total Candidates</h3>
+            <p id="totalCandidates">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Average Score</h3>
+            <p id="averageScore">0%</p>
+        </div>
+
+        <div class="card">
+            <h3>Shortlisted</h3>
+            <p id="shortlistedCount">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Rejected</h3>
+            <p id="rejectedCount">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Under Review</h3>
+            <p id="underReviewCount">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Onboarded</h3>
+            <p id="onboardedCount">0</p>
+        </div>
+
+        <div class="card">
+            <h3>Highest Score</h3>
+            <p id="highestScore">0%</p>
+        </div>
+
+        <div class="card">
+            <h3>Top Candidate</h3>
+            <p id="topCandidate" style="font-size: 18px;">-</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Candidates for Selected Job</h2>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Score</th>
+                    <th>Matched Skills</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="jobCandidateTableBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function protectHRPage() {
+        const user = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!user) {
+            window.location.href = "index.html";
+            return;
+        }
+
+        const role = user.role ? user.role.toUpperCase() : "";
+
+        if (role !== "HR" && role !== "ADMIN") {
+            alert("Access denied. This page is only for HR/Admin users.");
+            window.location.href = "candidate-dashboard.html";
+        }
+    }
+
+    protectHRPage();
+
+    async function loadJobs() {
+        try {
+            const response = await fetch("/api/jobs");
+
+            if (!response.ok) {
+                throw new Error("Failed to load jobs");
+            }
+
+            const jobs = await response.json();
+            const jobSelect = document.getElementById("jobSelect");
+
+            jobSelect.innerHTML = '<option value="">Select Job</option>';
+
+            jobs.forEach(job => {
+                const option = document.createElement("option");
+                option.value = job.id;
+                option.textContent = job.title + " - " + job.experience;
+                jobSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            console.log("Job loading error:", error);
+            document.getElementById("jobAnalyticsMessage").innerText = "Failed to load jobs.";
+            document.getElementById("jobAnalyticsMessage").style.color = "red";
+        }
+    }
+
+    async function loadJobCandidates() {
+        const jobId = document.getElementById("jobSelect").value;
+
+        if (!jobId) {
+            resetAnalytics();
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/candidates/job/" + jobId);
+
+            if (!response.ok) {
+                throw new Error("Failed to load job candidates");
+            }
+
+            let candidates = await response.json();
+
+            candidates.sort((a, b) => {
+                const scoreA = a.resumeScore || 0;
+                const scoreB = b.resumeScore || 0;
+                return scoreB - scoreA;
+            });
+
+            updateAnalyticsCards(candidates);
+            renderCandidateTable(candidates);
+
+        } catch (error) {
+            console.log("Job candidate loading error:", error);
+            document.getElementById("jobAnalyticsMessage").innerText = "Failed to load candidates for selected job.";
+            document.getElementById("jobAnalyticsMessage").style.color = "red";
+        }
+    }
+
+    function updateAnalyticsCards(candidates) {
+        const total = candidates.length;
+
+        if (total === 0) {
+            resetAnalytics();
+            document.getElementById("jobAnalyticsMessage").innerText = "No candidates found for this job.";
+            document.getElementById("jobAnalyticsMessage").style.color = "red";
+            return;
+        }
+
+        let totalScore = 0;
+        let shortlisted = 0;
+        let rejected = 0;
+        let underReview = 0;
+        let onboarded = 0;
+
+        candidates.forEach(candidate => {
+            totalScore += candidate.resumeScore || 0;
+
+            if (candidate.status === "SHORTLISTED") shortlisted++;
+            if (candidate.status === "REJECTED") rejected++;
+            if (candidate.status === "UNDER_REVIEW") underReview++;
+            if (candidate.status === "ONBOARDED") onboarded++;
+        });
+
+        const averageScore = totalScore / total;
+        const highestScore = candidates[0].resumeScore || 0;
+        const topCandidate = candidates[0].name || "-";
+
+        document.getElementById("totalCandidates").innerText = total;
+        document.getElementById("averageScore").innerText = averageScore.toFixed(2) + "%";
+        document.getElementById("shortlistedCount").innerText = shortlisted;
+        document.getElementById("rejectedCount").innerText = rejected;
+        document.getElementById("underReviewCount").innerText = underReview;
+        document.getElementById("onboardedCount").innerText = onboarded;
+        document.getElementById("highestScore").innerText = highestScore.toFixed(2) + "%";
+        document.getElementById("topCandidate").innerText = topCandidate;
+
+        document.getElementById("jobAnalyticsMessage").innerText = "Analytics loaded successfully.";
+        document.getElementById("jobAnalyticsMessage").style.color = "green";
+    }
+
+    function renderCandidateTable(candidates) {
+        const tableBody = document.getElementById("jobCandidateTableBody");
+        tableBody.innerHTML = "";
+
+        candidates.forEach((candidate, index) => {
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${candidate.name}</td>
+                <td>${candidate.email}</td>
+                <td>${candidate.phone}</td>
+                <td>${candidate.resumeScore ? candidate.resumeScore.toFixed(2) + "%" : "0%"}</td>
+                <td>${candidate.matchedSkills || "-"}</td>
+                <td>
+                    <span class="status-badge ${getStatusClass(candidate.status)}">
+                        ${candidate.status}
+                    </span>
+                </td>
+            `;
+
+            tableBody.appendChild(row);
+        });
+    }
+
+    function resetAnalytics() {
+        document.getElementById("totalCandidates").innerText = "0";
+        document.getElementById("averageScore").innerText = "0%";
+        document.getElementById("shortlistedCount").innerText = "0";
+        document.getElementById("rejectedCount").innerText = "0";
+        document.getElementById("underReviewCount").innerText = "0";
+        document.getElementById("onboardedCount").innerText = "0";
+        document.getElementById("highestScore").innerText = "0%";
+        document.getElementById("topCandidate").innerText = "-";
+        document.getElementById("jobCandidateTableBody").innerHTML = "";
+    }
+
+    function getStatusClass(status) {
+        if (status === "SHORTLISTED") return "status-shortlisted";
+        if (status === "UNDER_REVIEW") return "status-review";
+        if (status === "REJECTED") return "status-rejected";
+        if (status === "ONBOARDED") return "status-onboarded";
+        return "status-default";
+    }
+
+    function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    }
+
+    loadJobs();
+</script>
+
+</body>
+</html>
